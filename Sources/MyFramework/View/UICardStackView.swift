@@ -40,6 +40,11 @@ public class UICardStackView: UIView {
         let cardView = UICardView(frame: bounds)
         cardView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         cardView.frontView = frontView
+        
+        if let backView = dataSource?.cardStack(self, backViewForCardAt: index) {
+            cardView.backView = backView
+        }
+        
         setupCallbacks(for: cardView)
         return cardView
     }

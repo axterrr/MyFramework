@@ -6,11 +6,17 @@ public class UICardView: UIView {
         didSet { setupView(frontView, inside: frontContainer) }
     }
     
+    var backView: UIView? {
+        didSet { setupView(backView, inside: backContainer) }
+    }
+    
     private let frontContainer = UIView()
+    private let backContainer = UIView()
     
     var onDrag: ((CGFloat) -> Void)?
     var onSwipeEnd: ((SwipeDirection) -> Void)?
     
+    private var isShowingBack = false
     private var originalCenter: CGPoint = .zero
     private let threshold: CGFloat = 100
     
@@ -37,19 +43,26 @@ public class UICardView: UIView {
         self.layer.shadowOffset = CGSize(width: 0, height: 4)
         self.layer.shadowRadius = 6
         
-        frontContainer.frame = self.bounds
-        frontContainer.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        frontContainer.backgroundColor = .white
-        frontContainer.layer.cornerRadius = 20
-        frontContainer.layer.masksToBounds = true
-        frontContainer.layer.borderWidth = 1
-        frontContainer.layer.borderColor = UIColor.systemGray5.cgColor
-        addSubview(frontContainer)
+        [frontContainer, backContainer].forEach({ contentainer in
+            contentainer.frame = self.bounds
+            contentainer.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            contentainer.backgroundColor = .white
+            contentainer.layer.cornerRadius = 20
+            contentainer.layer.masksToBounds = true
+            contentainer.layer.borderWidth = 1
+            contentainer.layer.borderColor = UIColor.systemGray5.cgColor
+            addSubview(contentainer)
+        })
+        
+        backContainer.isHidden = true
     }
     
     private func setupGestures() {
         let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
         self.addGestureRecognizer(pan)
+        
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        self.addGestureRecognizer(tap)
     }
     
     @objc private func handlePan(_ sender: UIPanGestureRecognizer) {
@@ -99,6 +112,25 @@ public class UICardView: UIView {
             self.transform = CGAffineTransform(rotationAngle: angle)
         } completion: { _ in
             self.onSwipeEnd?(direction)
+        }
+    }
+    
+    @objc private func handleTap(_ sender: UITapGestureRecognizer) {
+        guard backView != nil else { return }
+        flip()
+    }
+    
+    private func flip() {
+        let transitionOptions: AnimationOptions = isShowingBack ? .transitionFlipFromLeft : .transitionFlipFromRight
+        
+        let viewToShow = isShowingBack ? frontContainer : backContainer
+        let viewToHide = isShowingBack ? backContainer : frontContainer
+        
+        UIView.transition(with: self, duration: 0.4, options: transitionOptions, animations: {
+            viewToHide.isHidden = true
+            viewToShow.isHidden = false
+        }) { _ in
+            self.isShowingBack.toggle()
         }
     }
     
