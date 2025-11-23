@@ -9,7 +9,6 @@ public class UICardStackView: UIView {
     
     private var topCard: UICardView?
     private var nextCard: UICardView?
-    //private var backCard: UICardView?
     
     public func reloadData() {
         subviews.forEach { $0.removeFromSuperview() }
@@ -49,26 +48,19 @@ public class UICardStackView: UIView {
     }
     
     private func setupCallbacks(for card: UICardView) {
-        card.onDragRight = { [weak self] xOffset in
+        card.onDrag = { [weak self] xOffset in
             guard let self = self, let nextCard = self.nextCard, let topCard = self.topCard else { return }
             let progress = min(abs(xOffset) / 300, 1.0)
             let scale = 0.9 + (0.1 * progress)
             let translationY = 15 - (15 * progress)
             nextCard.transform = CGAffineTransform(scaleX: scale, y: scale)
                 .concatenating(CGAffineTransform(translationX: 0, y: translationY))
-            topCard.alpha = 1 - (0.4 * progress)
-        }
-        
-        card.onDragLeft = { [weak self] xOffset in
-            self?.handleLeftDrag(xOffset: xOffset)
+            topCard.alpha = 1.0 - (0.3 * progress)
         }
         
         card.onSwipeEnd = { [weak self] direction in
             self?.handleSwipeCompletion(direction: direction)
         }
-    }
-    
-    private func handleLeftDrag(xOffset: CGFloat) {
     }
     
     private func handleSwipeCompletion(direction: SwipeDirection) {
@@ -77,54 +69,20 @@ public class UICardStackView: UIView {
         
         delegate?.cardStack(self, didSwipeCardAt: currentIndex, direction: direction)
         
-        if direction == .right {
-            
-            guard let oldTop = topCard, let newTop = nextCard else { return }
-            
-            oldTop.removeFromSuperview()
-            
-            currentIndex = (currentIndex + 1) % total
-            
-            topCard = newTop
-            
-            UIView.animate(withDuration: 0.2) {
-                newTop.transform = .identity
-            }
-            
-            let nextIndex = (currentIndex + 1) % total
-            let newNext = createCard(at: nextIndex)
-            insertSubview(newNext, at: 0)
-            applyNextCardTransform(newNext)
-            
-            nextCard = newNext
-            
-//        } else {
-//            // <--- PREVIOUS CARD <---
-//            
-//            guard let incomingCard = tempPreviousWrapper else { return }
-//            
-//            // 1. Доводимо анімацію попередньої картки до центру
-//            UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 1, options: .curveEaseOut) {
-//                incomingCard.center = self.center
-//                incomingCard.transform = .identity
-//            } completion: { _ in
-//                // 2. Коли анімація завершилась, оновлюємо структуру
-//                
-//                // Стара верхня стає задньою
-//                self.backCardWrapper?.removeFromSuperview() // Видаляємо стару задню (вона нам більше не треба)
-//                
-//                self.backCardWrapper = self.topCardWrapper
-//                self.applyBackCardTransform(self.backCardWrapper!)
-//                self.sendSubviewToBack(self.backCardWrapper!)
-//                
-//                // Та, що прилетіла, стає верхньою
-//                self.topCardWrapper = incomingCard
-//                self.tempPreviousWrapper = nil
-//                
-//                // Оновлюємо індекс
-//                self.currentIndex = (self.currentIndex - 1 + total) % total
-//            }
+        guard let oldTop = topCard, let newTop = nextCard else { return }
+        oldTop.removeFromSuperview()
+        currentIndex = (currentIndex + 1) % total
+        topCard = newTop
+        
+        UIView.animate(withDuration: 0.2) {
+            newTop.transform = .identity
         }
+        
+        let nextIndex = (currentIndex + 1) % total
+        let newNext = createCard(at: nextIndex)
+        insertSubview(newNext, at: 0)
+        applyNextCardTransform(newNext)
+        nextCard = newNext
     }
     
     private func applyNextCardTransform(_ card: UIView) {

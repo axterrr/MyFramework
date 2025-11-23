@@ -4,8 +4,7 @@ public class UICardView: UIView {
     
     let frontContainer = UIView()
     
-    var onDragRight: ((CGFloat) -> Void)?
-    var onDragLeft: ((CGFloat) -> Void)?
+    var onDrag: ((CGFloat) -> Void)?
     var onSwipeEnd: ((SwipeDirection) -> Void)?
     
     private var originalCenter: CGPoint = .zero
@@ -58,21 +57,16 @@ public class UICardView: UIView {
             originalCenter = self.center
             
         case .changed:
-            if xOffset > 0 {
-                self.center = CGPoint(x: originalCenter.x + xOffset, y: originalCenter.y + (translation.y * 0.5))
-                let rotationAngle = (xOffset / 300) * (CGFloat.pi / 12)
-                self.transform = CGAffineTransform(rotationAngle: rotationAngle)
-                onDragRight?(xOffset)
-            } else {
-                resetPosition()
-                onDragLeft?(xOffset)
-            }
+            self.center = CGPoint(x: originalCenter.x + xOffset, y: originalCenter.y + (translation.y * 0.5))
+            let rotationAngle = (xOffset / 300) * (CGFloat.pi / 12)
+            self.transform = CGAffineTransform(rotationAngle: rotationAngle)
+            onDrag?(xOffset)
             
         case .ended:
             if xOffset > threshold {
-                animateFlyAway()
+                animateFlyAway(direction: .right)
             } else if xOffset < -threshold {
-                onSwipeEnd?(.left)
+                animateFlyAway(direction: .left)
             } else {
                 resetPosition()
             }
@@ -90,76 +84,17 @@ public class UICardView: UIView {
         }
     }
     
-    private func animateFlyAway() {
-        let flyAwayPoint = CGPoint(x: UIScreen.main.bounds.width * 1.5, y: originalCenter.y + 50)
+    private func animateFlyAway(direction: SwipeDirection) {
+        let screenWidth = UIScreen.main.bounds.width
+        let targetX = direction == .right ? screenWidth * 1.5 : -screenWidth * 1.5
+        let flyAwayPoint = CGPoint(x: targetX, y: originalCenter.y + 50)
         
         UIView.animate(withDuration: 0.3) {
             self.center = flyAwayPoint
-            self.transform = CGAffineTransform(rotationAngle: CGFloat.pi / 4)
+            let angle = direction == .right ? CGFloat.pi / 4 : -CGFloat.pi / 4
+            self.transform = CGAffineTransform(rotationAngle: angle)
         } completion: { _ in
-            self.onSwipeEnd?(.right)
+            self.onSwipeEnd?(direction)
         }
     }
-    
-//    override func layoutSubviews() {
-//        super.layoutSubviews()
-//        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 16).cgPath
-//    }
-//    
-//    
-//    var frontView: UIView?
-//    var backView: UIView?
-//    
-//    private(set) var isShowingBack = false
-//    
-//    var onDidTap: (() -> Void)?
-//    var onPanUpdate: ((CGFloat) -> Void)?
-//    var onSwipeAction: ((SwipeDirection) -> Void)?
-//    
-//    private let frontContainer = UIView()
-//    private let backContainer = UIView()
-//    
-//    private func setupContainers() {
-//        [frontContainer, backContainer].forEach {
-//            addSubview($0)
-//            $0.frame = bounds
-//            $0.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-//            $0.layer.cornerRadius = 16
-//            $0.clipsToBounds = true
-//            $0.backgroundColor = .white
-//        }
-//        
-//        backContainer.isHidden = true
-//        // backContainer.transform = CGAffineTransform(scaleX: -1, y: 1)
-//    }
-//    
-//    private func setupView(_ view: UIView?, inside container: UIView) {
-//        container.subviews.forEach { $0.removeFromSuperview() }
-//        guard let view = view else { return }
-//        container.addSubview(view)
-//        view.frame = container.bounds
-//        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-//    }
-//    
-//    @objc private func handleTap(_ sender: UITapGestureRecognizer) {
-//        guard backView != nil else {
-//            onDidTap?()
-//            return
-//        }
-//        flip()
-//    }
-//    
-//    public func flip() {
-//        let transitionOptions: UIView.AnimationOptions = isShowingBack ? .transitionFlipFromLeft : .transitionFlipFromRight
-//        
-//        let viewToShow = isShowingBack ? frontContainer : backContainer
-//        let viewToHide = isShowingBack ? backContainer : frontContainer
-//        
-//        UIView.transition(with: self, duration: 0.4, options: transitionOptions, animations: {
-//            viewToHide.isHidden = true
-//            viewToShow.isHidden = false
-//        }) { _ in
-//            self.isShowingBack.toggle()
-//        }
-//    }
 }
