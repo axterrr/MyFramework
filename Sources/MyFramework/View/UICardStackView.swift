@@ -36,15 +36,12 @@ public class UICardStackView: UIView {
     }
     
     private func createCard(at index: Int) -> UICardView {
-        guard let content = dataSource?.cardStack(self, viewForCardAt: index) else { return UICardView() }
-        let container = UICardView(frame: bounds)
-        container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        container.frontContainer.addSubview(content)
-        content.frame = container.frontContainer.bounds
-        content.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        setupCallbacks(for: container)
-        self.addSubview(container)
-        return container
+        guard let frontView = dataSource?.cardStack(self, viewForCardAt: index) else { return UICardView() }
+        let cardView = UICardView(frame: bounds)
+        cardView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        cardView.frontView = frontView
+        setupCallbacks(for: cardView)
+        return cardView
     }
     
     private func setupCallbacks(for card: UICardView) {

@@ -2,7 +2,11 @@ import UIKit
 
 public class UICardView: UIView {
     
-    let frontContainer = UIView()
+    var frontView: UIView? {
+        didSet { setupView(frontView, inside: frontContainer) }
+    }
+    
+    private let frontContainer = UIView()
     
     var onDrag: ((CGFloat) -> Void)?
     var onSwipeEnd: ((SwipeDirection) -> Void)?
@@ -96,5 +100,13 @@ public class UICardView: UIView {
         } completion: { _ in
             self.onSwipeEnd?(direction)
         }
+    }
+    
+    private func setupView(_ view: UIView?, inside container: UIView) {
+        container.subviews.forEach { $0.removeFromSuperview() }
+        guard let view = view else { return }
+        container.addSubview(view)
+        view.frame = container.bounds
+        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     }
 }
