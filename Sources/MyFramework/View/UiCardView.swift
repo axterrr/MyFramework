@@ -1,6 +1,6 @@
 import UIKit
 
-public class UICardView: UIView {
+class UICardView: UIView {
     
     var frontView: UIView? {
         didSet { setupView(frontView, inside: frontContainer) }
@@ -15,7 +15,7 @@ public class UICardView: UIView {
     
     var onDidTap: (() -> Void)?
     var onDrag: ((CGFloat) -> Void)?
-    var onSwipeEnd: ((SwipeDirection) -> Void)?
+    var onSwipeEnd: ((UICardViewSwipeDirection) -> Void)?
     
     private var isShowingBack = false
     private var originalCenter: CGPoint = .zero
@@ -82,9 +82,9 @@ public class UICardView: UIView {
             
         case .ended:
             if xOffset > threshold {
-                animateFlyAway(direction: .right)
+                animateSwipe(direction: .right)
             } else if xOffset < -threshold {
-                animateFlyAway(direction: .left)
+                animateSwipe(direction: .left)
             } else {
                 resetPosition()
             }
@@ -102,7 +102,7 @@ public class UICardView: UIView {
         }
     }
     
-    private func animateFlyAway(direction: SwipeDirection) {
+    private func animateSwipe(direction: UICardViewSwipeDirection) {
         let screenWidth = UIScreen.main.bounds.width
         let targetX = direction == .right ? screenWidth * 1.5 : -screenWidth * 1.5
         let flyAwayPoint = CGPoint(x: targetX, y: originalCenter.y + 50)

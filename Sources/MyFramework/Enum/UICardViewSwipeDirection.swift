@@ -1,6 +1,6 @@
 import UIKit
 
-public enum SwipeDirection {
+public enum UICardViewSwipeDirection {
     case left
     case right
 }

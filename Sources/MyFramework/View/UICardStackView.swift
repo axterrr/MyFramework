@@ -2,23 +2,23 @@ import UIKit
 
 public class UICardStackView: UIView {
     
-    public weak var dataSource: UICardStackDataSource?
-    public weak var delegate: UICardStackDelegate?
+    public var config: UICardStackViewConfig = UICardStackViewConfig()
+    public weak var dataSource: UICardStackViewDataSource?
+    public weak var delegate: UICardStackViewDelegate?
     
     private var currentIndex = 0
-    
     private var topCard: UICardView?
     private var nextCard: UICardView?
     
     public func reloadData() {
         subviews.forEach { $0.removeFromSuperview() }
         currentIndex = 0
-        initCards()
+        loadCards()
     }
     
-    private func initCards() {
+    private func loadCards() {
         guard let dataSource = dataSource else { return }
-        let total = dataSource.numberOfCards(in: self)
+        let total = dataSource.cardStackView(in: self)
         
         guard total > 0 else { return }
         
@@ -36,12 +36,12 @@ public class UICardStackView: UIView {
     }
     
     private func createCard(at index: Int) -> UICardView {
-        guard let frontView = dataSource?.cardStack(self, viewForCardAt: index) else { return UICardView() }
+        guard let frontView = dataSource?.cardStackView(self, viewForCardAt: index) else { return UICardView() }
         let cardView = UICardView(frame: bounds)
         cardView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         cardView.frontView = frontView
         
-        if let backView = dataSource?.cardStack(self, backViewForCardAt: index) {
+        if let backView = dataSource?.cardStackView(self, backViewForCardAt: index) {
             cardView.backView = backView
         }
         
@@ -66,15 +66,15 @@ public class UICardStackView: UIView {
         
         card.onDidTap = { [weak self] in
             guard let self else { return }
-            self.delegate?.cardStack(self, didTapCardAt: self.currentIndex)
+            self.delegate?.cardStackView(self, didTapCardAt: self.currentIndex)
         }
     }
     
-    private func handleSwipeCompletion(direction: SwipeDirection) {
+    private func handleSwipeCompletion(direction: UICardViewSwipeDirection) {
         guard let dataSource = dataSource else { return }
-        let total = dataSource.numberOfCards(in: self)
+        let total = dataSource.cardStackView(in: self)
         
-        delegate?.cardStack(self, didSwipeCardAt: currentIndex, direction: direction)
+        delegate?.cardStackView(self, didSwipeCardAt: currentIndex, direction: direction)
         
         guard let oldTop = topCard, let newTop = nextCard else { return }
         oldTop.removeFromSuperview()

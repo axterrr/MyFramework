@@ -19,9 +19,5 @@ let package = Package(
         .target(
             name: "MyFramework"
         ),
-        .testTarget(
-            name: "MyFrameworkTests",
-            dependencies: ["MyFramework"]
-        ),
     ]
 )
