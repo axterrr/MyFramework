@@ -63,6 +63,11 @@ public class UICardStackView: UIView {
         card.onSwipeEnd = { [weak self] direction in
             self?.handleSwipeCompletion(direction: direction)
         }
+        
+        card.onDidTap = { [weak self] in
+            guard let self else { return }
+            self.delegate?.cardStack(self, didTapCardAt: self.currentIndex)
+        }
     }
     
     private func handleSwipeCompletion(direction: SwipeDirection) {

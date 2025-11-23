@@ -13,6 +13,7 @@ public class UICardView: UIView {
     private let frontContainer = UIView()
     private let backContainer = UIView()
     
+    var onDidTap: (() -> Void)?
     var onDrag: ((CGFloat) -> Void)?
     var onSwipeEnd: ((SwipeDirection) -> Void)?
     
@@ -116,6 +117,7 @@ public class UICardView: UIView {
     }
     
     @objc private func handleTap(_ sender: UITapGestureRecognizer) {
+        onDidTap?()
         guard backView != nil else { return }
         flip()
     }
