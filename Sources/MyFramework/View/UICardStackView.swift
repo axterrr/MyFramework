@@ -66,7 +66,14 @@ public class UICardStackView: UIView {
             topCard.alpha = 1.0 - (config.oparcityRate * progress)
         }
         
-        card.onSwipeEnd = { [weak self] direction in
+        card.onWillSwipe = { [weak self] direction in
+            guard let self = self, let nextCard = self.nextCard else { return }
+            UIView.animate(withDuration: self.config.animationDuration) {
+                nextCard.transform = .identity
+            }
+        }
+        
+        card.onDidSwipe = { [weak self] direction in
             self?.handleSwipeCompletion(direction: direction)
         }
         
@@ -86,10 +93,6 @@ public class UICardStackView: UIView {
         oldTop.removeFromSuperview()
         currentIndex = (currentIndex + 1) % total
         topCard = newTop
-        
-        UIView.animate(withDuration: config.animationDuration) {
-            newTop.transform = .identity
-        }
         
         let nextIndex = (currentIndex + 1) % total
         let newNext = createCard(at: nextIndex)

@@ -15,7 +15,8 @@ class UICardView: UIView {
     
     var onDidTap: (() -> Void)?
     var onDrag: ((CGFloat) -> Void)?
-    var onSwipeEnd: ((UICardViewSwipeDirection) -> Void)?
+    var onWillSwipe: ((UICardViewSwipeDirection) -> Void)?
+    var onDidSwipe: ((UICardViewSwipeDirection) -> Void)?
     
     private var isShowingBack = false
     private var originalCenter: CGPoint = .zero
@@ -70,7 +71,8 @@ class UICardView: UIView {
     }
     
     @objc private func handlePan(_ sender: UIPanGestureRecognizer) {
-        let translation = sender.translation(in: self)
+        guard let superview = self.superview else { return }
+        let translation = sender.translation(in: superview)
         let xOffset = translation.x
         
         switch sender.state {
@@ -79,8 +81,9 @@ class UICardView: UIView {
             
         case .changed:
             self.center = CGPoint(x: originalCenter.x + xOffset, y: originalCenter.y + (translation.y * 0.5))
-            let rotationStrength = min(xOffset / (swipeThreshold * 2), 1.0)
-            let rotationAngle = rotationStrength * rotationMax
+            let strength = xOffset / (swipeThreshold * 2)
+            let cappedStrength = min(max(strength, -1.0), 1.0)
+            let rotationAngle = cappedStrength * rotationMax
             self.transform = CGAffineTransform(rotationAngle: rotationAngle)
             onDrag?(xOffset)
             
@@ -117,12 +120,14 @@ class UICardView: UIView {
         let targetX = direction == .right ? screenWidth * 1.5 : -screenWidth * 1.5
         let flyAwayPoint = CGPoint(x: targetX, y: originalCenter.y + 50)
         
+        onWillSwipe?(direction)
+        
         UIView.animate(withDuration: animationDuration) {
             self.center = flyAwayPoint
-            let angle = direction == .right ? CGFloat.pi / 4 : -CGFloat.pi / 4
+            let angle = direction == .right ? self.rotationMax : -self.rotationMax
             self.transform = CGAffineTransform(rotationAngle: angle)
         } completion: { _ in
-            self.onSwipeEnd?(direction)
+            self.onDidSwipe?(direction)
         }
     }
     
