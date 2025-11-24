@@ -26,7 +26,6 @@ public class UICardStackView: UIView {
             let nextIndex = (currentIndex + 1) % total
             let next = createCard(at: nextIndex)
             addSubview(next)
-            applyNextCardTransform(next)
             nextCard = next
         }
         
