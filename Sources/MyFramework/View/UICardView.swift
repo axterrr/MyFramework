@@ -19,7 +19,10 @@ class UICardView: UIView {
     
     private var isShowingBack = false
     private var originalCenter: CGPoint = .zero
-    private let threshold: CGFloat = 100
+    
+    var swipeThreshold: CGFloat = 100
+    var rotationMax: CGFloat = .pi / 10
+    var animationDuration: TimeInterval = 0.25
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -76,14 +79,15 @@ class UICardView: UIView {
             
         case .changed:
             self.center = CGPoint(x: originalCenter.x + xOffset, y: originalCenter.y + (translation.y * 0.5))
-            let rotationAngle = (xOffset / 300) * (CGFloat.pi / 12)
+            let rotationStrength = min(xOffset / (swipeThreshold * 2), 1.0)
+            let rotationAngle = rotationStrength * rotationMax
             self.transform = CGAffineTransform(rotationAngle: rotationAngle)
             onDrag?(xOffset)
             
         case .ended:
-            if xOffset > threshold {
+            if xOffset > swipeThreshold {
                 animateSwipe(direction: .right)
-            } else if xOffset < -threshold {
+            } else if xOffset < -swipeThreshold {
                 animateSwipe(direction: .left)
             } else {
                 resetPosition()
@@ -95,7 +99,13 @@ class UICardView: UIView {
     }
     
     public func resetPosition() {
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 1, options: .curveEaseOut) {
+        UIView.animate(
+            withDuration: animationDuration,
+            delay: 0,
+            usingSpringWithDamping: 0.6,
+            initialSpringVelocity: 1,
+            options: .curveEaseOut
+        ) {
             self.center = self.originalCenter
             self.transform = .identity
             self.alpha = 1
@@ -107,7 +117,7 @@ class UICardView: UIView {
         let targetX = direction == .right ? screenWidth * 1.5 : -screenWidth * 1.5
         let flyAwayPoint = CGPoint(x: targetX, y: originalCenter.y + 50)
         
-        UIView.animate(withDuration: 0.3) {
+        UIView.animate(withDuration: animationDuration) {
             self.center = flyAwayPoint
             let angle = direction == .right ? CGFloat.pi / 4 : -CGFloat.pi / 4
             self.transform = CGAffineTransform(rotationAngle: angle)
@@ -118,8 +128,9 @@ class UICardView: UIView {
     
     @objc private func handleTap(_ sender: UITapGestureRecognizer) {
         onDidTap?()
-        guard backView != nil else { return }
-        flip()
+        if let backView {
+            flip()
+        }
     }
     
     private func flip() {
@@ -128,10 +139,15 @@ class UICardView: UIView {
         let viewToShow = isShowingBack ? frontContainer : backContainer
         let viewToHide = isShowingBack ? backContainer : frontContainer
         
-        UIView.transition(with: self, duration: 0.4, options: transitionOptions, animations: {
-            viewToHide.isHidden = true
-            viewToShow.isHidden = false
-        }) { _ in
+        UIView.transition(
+            with: self,
+            duration: animationDuration,
+            options: transitionOptions,
+            animations: {
+                viewToHide.isHidden = true
+                viewToShow.isHidden = false
+            }
+        ) { _ in
             self.isShowingBack.toggle()
         }
     }

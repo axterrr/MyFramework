@@ -40,6 +40,10 @@ public class UICardStackView: UIView {
         cardView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         cardView.frontView = frontView
         
+        cardView.swipeThreshold = config.swipeThreshold
+        cardView.rotationMax = config.rotationMax
+        cardView.animationDuration = config.animationDuration
+        
         if let backView = dataSource?.cardStackView(self, backViewForCardAt: index) {
             cardView.backView = backView
         }
@@ -51,12 +55,15 @@ public class UICardStackView: UIView {
     private func setupCallbacks(for card: UICardView) {
         card.onDrag = { [weak self] xOffset in
             guard let self = self, let nextCard = self.nextCard, let topCard = self.topCard else { return }
-            let progress = min(abs(xOffset) / 300, 1.0)
-            let scale = 0.9 + (0.1 * progress)
+            let progress = min(abs(xOffset) / (self.config.swipeThreshold * 2), 1.0)
+            let scaleDiff = self.config.scaleFactor
+            let baseScale = 1.0 - scaleDiff
+            let currentScale = baseScale + (scaleDiff * progress)
             let translationY = 15 - (15 * progress)
-            nextCard.transform = CGAffineTransform(scaleX: scale, y: scale)
+            
+            nextCard.transform = CGAffineTransform(scaleX: currentScale, y: currentScale)
                 .concatenating(CGAffineTransform(translationX: 0, y: translationY))
-            topCard.alpha = 1.0 - (0.3 * progress)
+            topCard.alpha = 1.0 - (config.oparcityRate * progress)
         }
         
         card.onSwipeEnd = { [weak self] direction in
@@ -80,7 +87,7 @@ public class UICardStackView: UIView {
         currentIndex = (currentIndex + 1) % total
         topCard = newTop
         
-        UIView.animate(withDuration: 0.2) {
+        UIView.animate(withDuration: config.animationDuration) {
             newTop.transform = .identity
         }
         
@@ -92,7 +99,8 @@ public class UICardStackView: UIView {
     }
     
     private func applyNextCardTransform(_ card: UIView) {
-        let scale = CGAffineTransform(scaleX: 0.9, y: 0.9)
+        let scaleVal = 1.0 - config.scaleFactor
+        let scale = CGAffineTransform(scaleX: scaleVal, y: scaleVal)
         let translate = CGAffineTransform(translationX: 0, y: 15)
         card.transform = scale.concatenating(translate)
     }
