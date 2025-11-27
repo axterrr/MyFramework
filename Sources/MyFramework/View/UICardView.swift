@@ -15,6 +15,7 @@ open class UICardView: UIView {
     
     var onDidTap: (() -> Void)?
     var onDrag: ((CGFloat) -> Void)?
+    var onWillSwipe: ((UICardViewSwipeDirection) -> Void)?
     var onDidSwipe: ((UICardViewSwipeDirection) -> Void)?
     
     private var isShowingBack = false
@@ -139,6 +140,8 @@ open class UICardView: UIView {
     }
     
     private func animateSwipe(direction: UICardViewSwipeDirection) {
+        onWillSwipe?(direction)
+        
         let screenWidth = UIScreen.main.bounds.width
         let targetX = direction == .right ? screenWidth * 1.5 : -screenWidth * 1.5
         let flyAwayPoint = CGPoint(x: targetX, y: originalCenter.y + 50)

@@ -68,7 +68,10 @@ open class UICardStackView: UIView {
             
             let targetTransform = CGAffineTransform(translationX: xScale, y: yScale).scaledBy(x: scale, y: scale)
             
-            if animated && i != visibleCards.count - 1 {
+            let isLastVisibleCard = (i == visibleCards.count - 1)
+            let isNewCard = isLastVisibleCard && (visibleCards.count == config.maxVisibleCards)
+                        
+            if animated && !isNewCard {
                 UIView.animate(withDuration: config.animationDuration) {
                     card.transform = targetTransform
                 }
@@ -86,8 +89,12 @@ open class UICardStackView: UIView {
             delegate?.cardStackView(self, didDragCardAt: self.currentIndex, translation: xOffset)
         }
         
+        card.onWillSwipe = { [weak self] direction in
+            self?.handleWillSwipe(direction: direction)
+        }
+        
         card.onDidSwipe = { [weak self] direction in
-            self?.handleSwipeCompletion(direction: direction)
+            self?.handleDidSwipe(card, direction: direction)
         }
         
         card.onDidTap = { [weak self] in
@@ -96,31 +103,42 @@ open class UICardStackView: UIView {
         }
     }
     
-    private func handleSwipeCompletion(direction: UICardViewSwipeDirection) {
-        guard let dataSource = dataSource else { return }
-        
-        delegate?.cardStackView(self, didSwipeCardAt: currentIndex, direction: direction)
-        
-        guard let top = visibleCards.first else { return }
-        top.removeFromSuperview()
+    private func handleWillSwipe(direction: UICardViewSwipeDirection) {
         visibleCards.removeFirst()
-        reusePool.enqueue(top)
         
-        currentIndex = config.endless ? (currentIndex + 1) % totalCount : currentIndex + 1
-        guard currentIndex < totalCount else {
-            delegate?.cardStackViewDidRunOutOfCards(self)
-            return
-        }
-        
-        let nextIndexRaw = currentIndex + config.maxVisibleCards - 1
+        let nextIndexRaw = currentIndex + config.maxVisibleCards
         let nextIndex = config.endless ? nextIndexRaw % totalCount : nextIndexRaw
         
-        guard nextIndex < totalCount else { return }
-        
-        let next = createCard(at: nextIndex)
-        visibleCards.append(next)
-        addSubview(next)
+        if nextIndex < totalCount {
+            let next = createCard(at: nextIndex)
+            visibleCards.append(next)
+            insertSubview(next, at: 0)
+        }
         
         layoutCards(animated: true)
+    }
+    
+    private func handleDidSwipe(_ card: UICardView, direction: UICardViewSwipeDirection) {
+        delegate?.cardStackView(self, didSwipeCardAt: currentIndex, direction: direction)
+        
+        card.removeFromSuperview()
+        card.prepareForReuse()
+        reusePool.enqueue(card)
+        
+        currentIndex = config.endless ? (currentIndex + 1) % totalCount : currentIndex + 1
+        if currentIndex == totalCount {
+            delegate?.cardStackViewDidRunOutOfCards(self)
+        }
+    }
+    
+    public override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        for card in visibleCards.dropFirst() {
+            let savedTransform = card.transform
+            card.transform = .identity
+            card.frame = bounds
+            card.transform = savedTransform
+        }
     }
 }
