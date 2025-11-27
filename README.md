@@ -16,17 +16,17 @@ A powerful and flexible iOS framework for creating interactive card stacks with 
 
 ### Swift Package Manager
 
-Add UICardStackView to your project via Xcode:
+Add MyFramework to your project via Xcode:
 
 1. Go to **File → Add Package Dependencies**
-2. Enter the repository URL: `https://github.com/yourusername/UICardStackView`
+2. Enter the repository URL: `https://github.com/axterrr/MyFramework`
 3. Select the version you want to use
 
 Or add it to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yourusername/UICardStackView", from: "1.0.0")
+    .package(url: "https://github.com/axterrr/MyFramework", from: "1.0.0")
 ]
 ```
 
@@ -35,7 +35,7 @@ dependencies: [
 Add this line to your `Podfile`:
 
 ```ruby
-pod 'UICardStackView', '~> 1.0'
+pod 'MyFramework', '~> 1.0'
 ```
 
 Then run:
@@ -49,7 +49,7 @@ pod install
 ### Basic Setup
 
 ```swift
-import UICardStackView
+import MyFramework
 
 class ViewController: UIViewController {
     
@@ -282,7 +282,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Author
 
-**Your Name**  
+**Hibskyi Vladyslav**  
 [GitHub](https://github.com/axterrr)
 
 ## Contributing
