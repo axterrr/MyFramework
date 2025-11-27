@@ -1,17 +1,33 @@
 import UIKit
 
+/// A view representing a single card in the stack.
+///
+/// `UICardView` handles gesture recognizers (pan and tap) and animations.
+/// It supports a double-sided layout with `frontView` and `backView`, allowing for a flip animation upon tapping.
 open class UICardView: UIView {
     
+    // MARK: - Public Properties
+        
+    /// The view to be displayed on the front side of the card.
+    /// Setting this property automatically adds the view to the internal container and adjusts its layout.
     public var frontView: UIView? {
         didSet { setupView(frontView, inside: frontContainer) }
     }
     
+    /// The view to be displayed on the back side of the card.
+    /// The back side is revealed when the user taps the card (triggering a flip animation).
     public var backView: UIView? {
         didSet { setupView(backView, inside: backContainer) }
     }
     
-    private let frontContainer = UIView()
-    private let backContainer = UIView()
+    // MARK: - Internal Configuration
+    
+    var swipeThreshold: CGFloat = 100
+    var rotationMax: CGFloat = 0
+    var animationDuration: TimeInterval = 0.25
+    var opacityRate: CGFloat = 0
+    
+    // MARK: - Callbacks
     
     var onBeginDrag: (() -> Void)?
     var onDrag: ((CGPoint) -> Void)?
@@ -20,13 +36,14 @@ open class UICardView: UIView {
     var onDidSwipe: ((UICardViewSwipeDirection) -> Void)?
     var onDidTap: (() -> Void)?
     
+    // MARK: - Private Properties
+    
+    private let frontContainer = UIView()
+    private let backContainer = UIView()
     private var isShowingBack = false
     private var originalCenter: CGPoint = .zero
     
-    var swipeThreshold: CGFloat = 100
-    var rotationMax: CGFloat = 0
-    var animationDuration: TimeInterval = 0.25
-    var opacityRate: CGFloat = 0
+    // MARK: - Initialization
     
     override public init(frame: CGRect) {
         super.init(frame: frame)
@@ -42,6 +59,39 @@ open class UICardView: UIView {
         setupStyle()
         setupGestures()
     }
+    
+    // MARK: - Public Methods
+    
+    /// Prepares the card for reuse by resetting its state, transformations, and view hierarchy.
+    /// This method is called automatically by `UICardStackView` when a card is dequeued.
+    public func prepareForReuse() {
+        frontView = nil
+        backView = nil
+        
+        onBeginDrag = nil
+        onDrag = nil
+        onCancellSwipe = nil
+        onWillSwipe = nil
+        onDidSwipe = nil
+        onDidTap = nil
+        
+        isShowingBack = false
+        frontContainer.isHidden = false
+        backContainer.isHidden = true
+        
+        originalCenter = .zero
+        center = originalCenter
+        
+        swipeThreshold = 100
+        rotationMax = 0
+        animationDuration = 0.25
+        opacityRate = 0
+        
+        transform = .identity
+        alpha = 1.0
+    }
+    
+    // MARK: - Private Setup, Animations, Gestures
     
     private func setupStyle() {
         self.backgroundColor = .clear
@@ -123,25 +173,6 @@ open class UICardView: UIView {
             self.transform = .identity
             self.alpha = 1
         }
-    }
-    
-    func prepareForReuse() {
-        frontView = nil
-        backView = nil
-        onDidTap = nil
-        onDrag = nil
-        onDidSwipe = nil
-        transform = .identity
-        alpha = 1.0
-        originalCenter = .zero
-        center = originalCenter
-        isShowingBack = false
-        frontContainer.isHidden = false
-        backContainer.isHidden = true
-        swipeThreshold = 100
-        rotationMax = 0
-        animationDuration = 0.25
-        opacityRate = 0
     }
     
     private func animateSwipe(direction: UICardViewSwipeDirection) {

@@ -1,16 +1,34 @@
 import UIKit
 
+/// A container view that manages and displays a stack of swipeable cards.
+///
+/// `UICardStackView` handles the loading, layout, and recycling of `UICardView` instances.
+/// It uses a data source to fetch content and a delegate to report user interactions.
 open class UICardStackView: UIView {
     
+    // MARK: - Public Properties
+    
+    /// The configuration object for the stack view.
+    /// Modify this to change appearance and behavior (e.g., max visible cards, spacing).
     public var config: UICardStackViewConfig = UICardStackViewConfig()
+    
+    /// The object that acts as the data source of the card stack view.
     public weak var dataSource: UICardStackViewDataSource?
+    
+    /// The object that acts as the delegate of the card stack view.
     public weak var delegate: UICardStackViewDelegate?
+    
+    // MARK: - Private Properties
     
     private let reusePool = UICardViewReusePool()
     private var currentIndex = 0
     private var visibleCards: [UICardView] = []
     private var totalCount: Int { dataSource?.cardStackView(in: self) ?? 0 }
     
+    // MARK: - Public Methods
+    
+    /// Reloads all data from the data source and refreshes the UI.
+    /// This resets the current index to 0.
     public func reloadData() {
         visibleCards.forEach {
             $0.removeFromSuperview()
@@ -24,6 +42,8 @@ open class UICardStackView: UIView {
         delegate?.cardStackViewDidReloadData(self)
     }
     
+    /// Returns a reusable card view instance from the reuse pool.
+    /// - Returns: A `UICardView` object. If the pool is empty, a new instance is created.
     public func dequeueReusableCard() -> UICardView {
         if let card = reusePool.dequeue() {
             card.prepareForReuse()
@@ -31,6 +51,21 @@ open class UICardStackView: UIView {
         }
         return UICardView()
     }
+    
+    // MARK: - Layout & Lifecycle
+    
+    public override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        for card in visibleCards.dropFirst() {
+            let savedTransform = card.transform
+            card.transform = .identity
+            card.frame = bounds
+            card.transform = savedTransform
+        }
+    }
+    
+    // MARK: - Private Methods
     
     private func loadCards() {
         guard totalCount > 0 else { return }
@@ -136,23 +171,11 @@ open class UICardStackView: UIView {
         delegate?.cardStackView(self, didSwipeCardAt: currentIndex, direction: direction)
         
         card.removeFromSuperview()
-        card.prepareForReuse()
         reusePool.enqueue(card)
         
         currentIndex = config.endless ? (currentIndex + 1) % totalCount : currentIndex + 1
         if currentIndex == totalCount {
             delegate?.cardStackViewDidRunOutOfCards(self)
-        }
-    }
-    
-    public override func layoutSubviews() {
-        super.layoutSubviews()
-        
-        for card in visibleCards.dropFirst() {
-            let savedTransform = card.transform
-            card.transform = .identity
-            card.frame = bounds
-            card.transform = savedTransform
         }
     }
 }
