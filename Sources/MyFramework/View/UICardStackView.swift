@@ -30,13 +30,14 @@ open class UICardStackView: UIView {
     private func loadCards() {
         guard let dataSource = dataSource else { return }
         let total = dataSource.cardStackView(in: self)
-        
         guard total > 0 else { return }
         
-        let nextIndex = (currentIndex + 1) % total
-        let next = createCard(at: nextIndex)
-        addSubview(next)
-        nextCard = next
+        if total > 1 || config.endless {
+            let nextIndex = (currentIndex + 1) % total
+            let next = createCard(at: nextIndex)
+            addSubview(next)
+            nextCard = next
+        }
         
         let top = createCard(at: currentIndex)
         addSubview(top)
@@ -58,16 +59,20 @@ open class UICardStackView: UIView {
     
     private func setupCallbacks(for card: UICardView) {
         card.onDrag = { [weak self] xOffset in
-            guard let self = self, let nextCard = self.nextCard, let topCard = self.topCard else { return }
-            let progress = min(abs(xOffset) / (self.config.swipeThreshold * 2), 1.0)
-            let scaleDiff = self.config.scaleFactor
-            let baseScale = 1.0 - scaleDiff
-            let currentScale = baseScale + (scaleDiff * progress)
-            let translationY = 15 - (15 * progress)
+            guard let self = self, let topCard = self.topCard else { return }
             
-            nextCard.transform = CGAffineTransform(scaleX: currentScale, y: currentScale)
-                .concatenating(CGAffineTransform(translationX: 0, y: translationY))
+            let progress = min(abs(xOffset) / (self.config.swipeThreshold * 2), 1.0)
             topCard.alpha = 1.0 - (config.oparcityRate * progress)
+            
+            if let nextCard = self.nextCard {
+                let scaleDiff = self.config.scaleFactor
+                let baseScale = 1.0 - scaleDiff
+                let currentScale = baseScale + (scaleDiff * progress)
+                let translationY = 15 - (15 * progress)
+                
+                nextCard.transform = CGAffineTransform(scaleX: currentScale, y: currentScale)
+                    .concatenating(CGAffineTransform(translationX: 0, y: translationY))
+            }
         }
         
         card.onWillSwipe = { [weak self] direction in
@@ -93,13 +98,23 @@ open class UICardStackView: UIView {
         
         delegate?.cardStackView(self, didSwipeCardAt: currentIndex, direction: direction)
         
-        guard let oldTop = topCard, let newTop = nextCard else { return }
+        guard let oldTop = topCard else { return }
         oldTop.removeFromSuperview()
         reusePool.enqueue(oldTop)
-        currentIndex = (currentIndex + 1) % total
-        topCard = newTop
+        topCard = nextCard
         
-        let nextIndex = (currentIndex + 1) % total
+        currentIndex = config.endless ? (currentIndex + 1) % total : currentIndex + 1
+        guard currentIndex < total else {
+            delegate?.cardStackViewDidRunOutOfCards(self)
+            return
+        }
+        
+        let nextIndex = config.endless ? (currentIndex + 1) % total : currentIndex + 1
+        guard nextIndex < total else {
+            nextCard = nil
+            return
+        }
+        
         let newNext = createCard(at: nextIndex)
         insertSubview(newNext, at: 0)
         nextCard = newNext

@@ -1,6 +1,7 @@
 import Foundation
 
 public struct UICardStackViewConfig {
+    public var endless: Bool = true
     public var scaleFactor: CGFloat = 0.04
     public var swipeThreshold: CGFloat = 100
     public var rotationMax: CGFloat = .pi / 10
