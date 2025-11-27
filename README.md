@@ -35,7 +35,7 @@ dependencies: [
 Add this line to your `Podfile`:
 
 ```ruby
-pod 'MyFramework', '~> 1.0'
+pod 'MyFrameworkHibskyi', '~> 1.0'
 ```
 
 Then run:
