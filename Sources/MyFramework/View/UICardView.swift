@@ -1,12 +1,12 @@
 import UIKit
 
-class UICardView: UIView {
+open class UICardView: UIView {
     
-    var frontView: UIView? {
+    public var frontView: UIView? {
         didSet { setupView(frontView, inside: frontContainer) }
     }
     
-    var backView: UIView? {
+    public var backView: UIView? {
         didSet { setupView(backView, inside: backContainer) }
     }
     
@@ -25,12 +25,12 @@ class UICardView: UIView {
     var rotationMax: CGFloat = .pi / 10
     var animationDuration: TimeInterval = 0.25
     
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         commonInit()
     }
     
-    required init?(coder: NSCoder) {
+    required public init?(coder: NSCoder) {
         super.init(coder: coder)
         commonInit()
     }
@@ -47,6 +47,7 @@ class UICardView: UIView {
         self.layer.shadowOpacity = 0.2
         self.layer.shadowOffset = CGSize(width: 0, height: 4)
         self.layer.shadowRadius = 6
+        self.layer.masksToBounds = false
         
         [frontContainer, backContainer].forEach({ contentainer in
             contentainer.frame = self.bounds
@@ -101,7 +102,7 @@ class UICardView: UIView {
         }
     }
     
-    public func resetPosition() {
+    private func resetPosition() {
         UIView.animate(
             withDuration: animationDuration,
             delay: 0,
@@ -113,6 +114,25 @@ class UICardView: UIView {
             self.transform = .identity
             self.alpha = 1
         }
+    }
+    
+    func prepareForReuse() {
+        frontView = nil
+        backView = nil
+        onDidTap = nil
+        onDrag = nil
+        onDidSwipe = nil
+        onWillSwipe = nil
+        transform = .identity
+        alpha = 1.0
+        originalCenter = .zero
+        center = originalCenter
+        isShowingBack = false
+        frontContainer.isHidden = false
+        backContainer.isHidden = true
+        swipeThreshold = 100
+        rotationMax = .pi / 10
+        animationDuration = 0.25
     }
     
     private func animateSwipe(direction: UICardViewSwipeDirection) {

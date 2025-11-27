@@ -1,11 +1,12 @@
 import UIKit
 
-public class UICardStackView: UIView {
+open class UICardStackView: UIView {
     
     public var config: UICardStackViewConfig = UICardStackViewConfig()
     public weak var dataSource: UICardStackViewDataSource?
     public weak var delegate: UICardStackViewDelegate?
     
+    private let reusePool = UICardViewReusePool()
     private var currentIndex = 0
     private var topCard: UICardView?
     private var nextCard: UICardView?
@@ -14,6 +15,14 @@ public class UICardStackView: UIView {
         subviews.forEach { $0.removeFromSuperview() }
         currentIndex = 0
         loadCards()
+    }
+    
+    public func dequeueReusableCard() -> UICardView {
+        if let card = reusePool.dequeue() {
+            card.prepareForReuse()
+            return card
+        }
+        return UICardView()
     }
     
     private func loadCards() {
@@ -35,20 +44,15 @@ public class UICardStackView: UIView {
     }
     
     private func createCard(at index: Int) -> UICardView {
-        guard let frontView = dataSource?.cardStackView(self, viewForCardAt: index) else { return UICardView() }
-        let cardView = UICardView(frame: bounds)
-        cardView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        cardView.frontView = frontView
+        let cardView = dataSource?.cardStackView(self, viewForCardAt: index) ?? dequeueReusableCard()
         
+        cardView.frame = self.bounds
+        cardView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         cardView.swipeThreshold = config.swipeThreshold
         cardView.rotationMax = config.rotationMax
         cardView.animationDuration = config.animationDuration
-        
-        if let backView = dataSource?.cardStackView(self, backViewForCardAt: index) {
-            cardView.backView = backView
-        }
-        
         setupCallbacks(for: cardView)
+        
         return cardView
     }
     
@@ -91,20 +95,13 @@ public class UICardStackView: UIView {
         
         guard let oldTop = topCard, let newTop = nextCard else { return }
         oldTop.removeFromSuperview()
+        reusePool.enqueue(oldTop)
         currentIndex = (currentIndex + 1) % total
         topCard = newTop
         
         let nextIndex = (currentIndex + 1) % total
         let newNext = createCard(at: nextIndex)
         insertSubview(newNext, at: 0)
-        applyNextCardTransform(newNext)
         nextCard = newNext
-    }
-    
-    private func applyNextCardTransform(_ card: UIView) {
-        let scaleVal = 1.0 - config.scaleFactor
-        let scale = CGAffineTransform(scaleX: scaleVal, y: scaleVal)
-        let translate = CGAffineTransform(translationX: 0, y: 15)
-        card.transform = scale.concatenating(translate)
     }
 }
