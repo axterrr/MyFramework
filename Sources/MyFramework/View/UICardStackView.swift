@@ -8,14 +8,17 @@ open class UICardStackView: UIView {
     
     private let reusePool = UICardViewReusePool()
     private var currentIndex = 0
-    private var topCard: UICardView?
-    private var nextCard: UICardView?
+    private var visibleCards: [UICardView] = []
+    private var totalCount: Int { dataSource?.cardStackView(in: self) ?? 0 }
     
     public func reloadData() {
-        subviews.forEach { $0.removeFromSuperview() }
+        visibleCards.forEach {
+            $0.removeFromSuperview()
+            $0.prepareForReuse()
+            reusePool.enqueue($0)
+        }
+        visibleCards.removeAll()
         currentIndex = 0
-        topCard = nil
-        nextCard = nil
         loadCards()
     }
     
@@ -28,58 +31,59 @@ open class UICardStackView: UIView {
     }
     
     private func loadCards() {
-        guard let dataSource = dataSource else { return }
-        let total = dataSource.cardStackView(in: self)
-        guard total > 0 else { return }
+        guard totalCount > 0 else { return }
         
-        if total > 1 || config.endless {
-            let nextIndex = (currentIndex + 1) % total
-            let next = createCard(at: nextIndex)
-            addSubview(next)
-            nextCard = next
+        let visibleCardsNum = config.endless ? config.maxVisibleCards : min(config.maxVisibleCards, totalCount)
+        
+        for i in 0..<visibleCardsNum {
+            let idx = (currentIndex + i) % totalCount
+            let card = createCard(at: idx)
+            visibleCards.append(card)
+            addSubview(card)
         }
-        
-        let top = createCard(at: currentIndex)
-        addSubview(top)
-        topCard = top
+
+        layoutCards()
     }
     
     private func createCard(at index: Int) -> UICardView {
         let cardView = dataSource?.cardStackView(self, viewForCardAt: index) ?? dequeueReusableCard()
-        
         cardView.frame = self.bounds
         cardView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         cardView.swipeThreshold = config.swipeThreshold
         cardView.rotationMax = config.rotationMax
         cardView.animationDuration = config.animationDuration
+        cardView.opacityRate = config.opacityRate
         setupCallbacks(for: cardView)
-        
         return cardView
+    }
+    
+    private func layoutCards(animated: Bool = false) {
+        for (i, card) in visibleCards.enumerated() {
+            card.isUserInteractionEnabled = (i == 0)
+            
+            let level = CGFloat(i)
+            let scale = 1 - level * config.scaleFactor
+            let xScale = level * config.xCardSpacing
+            let yScale = level * config.yCardSpacing
+            
+            let targetTransform = CGAffineTransform(translationX: xScale, y: yScale).scaledBy(x: scale, y: scale)
+            
+            if animated && i != visibleCards.count - 1 {
+                UIView.animate(withDuration: config.animationDuration) {
+                    card.transform = targetTransform
+                }
+            } else {
+                card.transform = targetTransform
+            }
+            
+            sendSubviewToBack(card)
+        }
     }
     
     private func setupCallbacks(for card: UICardView) {
         card.onDrag = { [weak self] xOffset in
-            guard let self = self, let topCard = self.topCard else { return }
-            
-            let progress = min(abs(xOffset) / (self.config.swipeThreshold * 2), 1.0)
-            topCard.alpha = 1.0 - (config.oparcityRate * progress)
-            
-            if let nextCard = self.nextCard {
-                let scaleDiff = self.config.scaleFactor
-                let baseScale = 1.0 - scaleDiff
-                let currentScale = baseScale + (scaleDiff * progress)
-                let translationY = 15 - (15 * progress)
-                
-                nextCard.transform = CGAffineTransform(scaleX: currentScale, y: currentScale)
-                    .concatenating(CGAffineTransform(translationX: 0, y: translationY))
-            }
-        }
-        
-        card.onWillSwipe = { [weak self] direction in
-            guard let self = self, let nextCard = self.nextCard else { return }
-            UIView.animate(withDuration: self.config.animationDuration) {
-                nextCard.transform = .identity
-            }
+            guard let self else { return }
+            delegate?.cardStackView(self, didDragCardAt: self.currentIndex, translation: xOffset)
         }
         
         card.onDidSwipe = { [weak self] direction in
@@ -94,29 +98,29 @@ open class UICardStackView: UIView {
     
     private func handleSwipeCompletion(direction: UICardViewSwipeDirection) {
         guard let dataSource = dataSource else { return }
-        let total = dataSource.cardStackView(in: self)
         
         delegate?.cardStackView(self, didSwipeCardAt: currentIndex, direction: direction)
         
-        guard let oldTop = topCard else { return }
-        oldTop.removeFromSuperview()
-        reusePool.enqueue(oldTop)
-        topCard = nextCard
+        guard let top = visibleCards.first else { return }
+        top.removeFromSuperview()
+        visibleCards.removeFirst()
+        reusePool.enqueue(top)
         
-        currentIndex = config.endless ? (currentIndex + 1) % total : currentIndex + 1
-        guard currentIndex < total else {
+        currentIndex = config.endless ? (currentIndex + 1) % totalCount : currentIndex + 1
+        guard currentIndex < totalCount else {
             delegate?.cardStackViewDidRunOutOfCards(self)
             return
         }
         
-        let nextIndex = config.endless ? (currentIndex + 1) % total : currentIndex + 1
-        guard nextIndex < total else {
-            nextCard = nil
-            return
-        }
+        let nextIndexRaw = currentIndex + config.maxVisibleCards - 1
+        let nextIndex = config.endless ? nextIndexRaw % totalCount : nextIndexRaw
         
-        let newNext = createCard(at: nextIndex)
-        insertSubview(newNext, at: 0)
-        nextCard = newNext
+        guard nextIndex < totalCount else { return }
+        
+        let next = createCard(at: nextIndex)
+        visibleCards.append(next)
+        addSubview(next)
+        
+        layoutCards(animated: true)
     }
 }

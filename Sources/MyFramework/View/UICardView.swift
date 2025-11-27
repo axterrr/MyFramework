@@ -15,15 +15,15 @@ open class UICardView: UIView {
     
     var onDidTap: (() -> Void)?
     var onDrag: ((CGFloat) -> Void)?
-    var onWillSwipe: ((UICardViewSwipeDirection) -> Void)?
     var onDidSwipe: ((UICardViewSwipeDirection) -> Void)?
     
     private var isShowingBack = false
     private var originalCenter: CGPoint = .zero
     
     var swipeThreshold: CGFloat = 100
-    var rotationMax: CGFloat = .pi / 10
+    var rotationMax: CGFloat = 0
     var animationDuration: TimeInterval = 0.25
+    var opacityRate: CGFloat = 0
     
     override public init(frame: CGRect) {
         super.init(frame: frame)
@@ -49,15 +49,15 @@ open class UICardView: UIView {
         self.layer.shadowRadius = 6
         self.layer.masksToBounds = false
         
-        [frontContainer, backContainer].forEach({ contentainer in
-            contentainer.frame = self.bounds
-            contentainer.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            contentainer.backgroundColor = .white
-            contentainer.layer.cornerRadius = 20
-            contentainer.layer.masksToBounds = true
-            contentainer.layer.borderWidth = 1
-            contentainer.layer.borderColor = UIColor.systemGray5.cgColor
-            addSubview(contentainer)
+        [frontContainer, backContainer].forEach({ container in
+            container.frame = self.bounds
+            container.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            container.backgroundColor = .white
+            container.layer.cornerRadius = 20
+            container.layer.masksToBounds = true
+            container.layer.borderWidth = 1
+            container.layer.borderColor = UIColor.systemGray5.cgColor
+            addSubview(container)
         })
         
         backContainer.isHidden = true
@@ -81,11 +81,14 @@ open class UICardView: UIView {
             originalCenter = self.center
             
         case .changed:
-            self.center = CGPoint(x: originalCenter.x + xOffset, y: originalCenter.y + (translation.y * 0.5))
             let strength = xOffset / (swipeThreshold * 2)
             let cappedStrength = min(max(strength, -1.0), 1.0)
             let rotationAngle = cappedStrength * rotationMax
+            
             self.transform = CGAffineTransform(rotationAngle: rotationAngle)
+            self.center = CGPoint(x: originalCenter.x + xOffset, y: originalCenter.y + (translation.y * 0.5))
+            self.alpha = 1.0 - (opacityRate * abs(cappedStrength))
+            
             onDrag?(xOffset)
             
         case .ended:
@@ -122,7 +125,6 @@ open class UICardView: UIView {
         onDidTap = nil
         onDrag = nil
         onDidSwipe = nil
-        onWillSwipe = nil
         transform = .identity
         alpha = 1.0
         originalCenter = .zero
@@ -131,16 +133,15 @@ open class UICardView: UIView {
         frontContainer.isHidden = false
         backContainer.isHidden = true
         swipeThreshold = 100
-        rotationMax = .pi / 10
+        rotationMax = 0
         animationDuration = 0.25
+        opacityRate = 0
     }
     
     private func animateSwipe(direction: UICardViewSwipeDirection) {
         let screenWidth = UIScreen.main.bounds.width
         let targetX = direction == .right ? screenWidth * 1.5 : -screenWidth * 1.5
         let flyAwayPoint = CGPoint(x: targetX, y: originalCenter.y + 50)
-        
-        onWillSwipe?(direction)
         
         UIView.animate(withDuration: animationDuration) {
             self.center = flyAwayPoint
