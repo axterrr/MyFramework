@@ -20,6 +20,8 @@ open class UICardStackView: UIView {
         visibleCards.removeAll()
         currentIndex = 0
         loadCards()
+        
+        delegate?.cardStackViewDidReloadData(self)
     }
     
     public func dequeueReusableCard() -> UICardView {
@@ -84,9 +86,24 @@ open class UICardStackView: UIView {
     }
     
     private func setupCallbacks(for card: UICardView) {
-        card.onDrag = { [weak self] xOffset in
+        card.onBeginDrag = { [weak self] in
             guard let self else { return }
-            delegate?.cardStackView(self, didDragCardAt: self.currentIndex, translation: xOffset)
+            delegate?.cardStackView(self, didBeginDraggingCardAt: currentIndex)
+        }
+        
+        card.onDrag = { [weak self] translation in
+            guard let self else { return }
+            delegate?.cardStackView(self, didDragCardAt: currentIndex, translation: translation)
+        }
+        
+        card.onCancellSwipe = { [weak self] in
+            guard let self else { return }
+            delegate?.cardStackView(self, didCancelSwipeCardAt: currentIndex)
+        }
+        
+        card.onDidTap = { [weak self] in
+            guard let self else { return }
+            delegate?.cardStackView(self, didTapCardAt: currentIndex)
         }
         
         card.onWillSwipe = { [weak self] direction in
@@ -96,14 +113,11 @@ open class UICardStackView: UIView {
         card.onDidSwipe = { [weak self] direction in
             self?.handleDidSwipe(card, direction: direction)
         }
-        
-        card.onDidTap = { [weak self] in
-            guard let self else { return }
-            self.delegate?.cardStackView(self, didTapCardAt: self.currentIndex)
-        }
     }
     
     private func handleWillSwipe(direction: UICardViewSwipeDirection) {
+        delegate?.cardStackView(self, willSwipeCardAt: currentIndex, direction: direction)
+        
         visibleCards.removeFirst()
         
         let nextIndexRaw = currentIndex + config.maxVisibleCards

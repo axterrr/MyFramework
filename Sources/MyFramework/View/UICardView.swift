@@ -13,10 +13,12 @@ open class UICardView: UIView {
     private let frontContainer = UIView()
     private let backContainer = UIView()
     
-    var onDidTap: (() -> Void)?
-    var onDrag: ((CGFloat) -> Void)?
+    var onBeginDrag: (() -> Void)?
+    var onDrag: ((CGPoint) -> Void)?
+    var onCancellSwipe: (() -> Void)?
     var onWillSwipe: ((UICardViewSwipeDirection) -> Void)?
     var onDidSwipe: ((UICardViewSwipeDirection) -> Void)?
+    var onDidTap: (() -> Void)?
     
     private var isShowingBack = false
     private var originalCenter: CGPoint = .zero
@@ -80,6 +82,7 @@ open class UICardView: UIView {
         switch sender.state {
         case .began:
             originalCenter = self.center
+            onBeginDrag?()
             
         case .changed:
             let strength = xOffset / (swipeThreshold * 2)
@@ -90,7 +93,7 @@ open class UICardView: UIView {
             self.center = CGPoint(x: originalCenter.x + xOffset, y: originalCenter.y + (translation.y * 0.5))
             self.alpha = 1.0 - (opacityRate * abs(cappedStrength))
             
-            onDrag?(xOffset)
+            onDrag?(translation)
             
         case .ended:
             if xOffset > swipeThreshold {
@@ -107,6 +110,8 @@ open class UICardView: UIView {
     }
     
     private func resetPosition() {
+        onCancellSwipe?()
+        
         UIView.animate(
             withDuration: animationDuration,
             delay: 0,
