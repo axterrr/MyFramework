@@ -14,6 +14,8 @@ open class UICardStackView: UIView {
     public func reloadData() {
         subviews.forEach { $0.removeFromSuperview() }
         currentIndex = 0
+        topCard = nil
+        nextCard = nil
         loadCards()
     }
     
@@ -31,12 +33,10 @@ open class UICardStackView: UIView {
         
         guard total > 0 else { return }
         
-        if total > 1 {
-            let nextIndex = (currentIndex + 1) % total
-            let next = createCard(at: nextIndex)
-            addSubview(next)
-            nextCard = next
-        }
+        let nextIndex = (currentIndex + 1) % total
+        let next = createCard(at: nextIndex)
+        addSubview(next)
+        nextCard = next
         
         let top = createCard(at: currentIndex)
         addSubview(top)
