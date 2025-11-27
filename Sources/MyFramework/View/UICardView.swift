@@ -162,7 +162,7 @@ open class UICardView: UIView {
     
     @objc private func handleTap(_ sender: UITapGestureRecognizer) {
         onDidTap?()
-        if let backView {
+        if backView != nil {
             flip()
         }
     }
